@@ -43,8 +43,7 @@ ros_subset <- ros[, .(ID,
 ros_subset <- ros_subset[complete.cases(ros_subset), ] 
 
 #Homogenization
-vars_for_classification <- 1:4 #The 1st one is ID and is not used, but needed here
-n_var <- length(vars_for_classification)
+vars_for_classification <- c('EventPrec', 'EventMelt', 'Q_coeff', 'SWE.ROS_first') 
 ros_for_som <- as.matrix(apply(ros_subset[, -1], 2, scale)) # ID column should not be used in cluster analysis
 ros_for_som <- ros_for_som[, vars_for_classification]
 
