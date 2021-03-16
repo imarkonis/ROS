@@ -1,14 +1,12 @@
 # som with variables in summary table (important ones)
 # A 4 x 4 SOM is chosen with no further classification (16 groups)
 
-library(data.table) #data wrangling
-library(kohonen) #som
-library(ggplot2); library(fmsb) #graphics
+library(data.table) 
+library(kohonen) 
+library(ggplot2); library(fmsb)
 
 ros <- readRDS('./data/ROS_data.RDs') 
 
-#Colors for ploting
-my_palette <- colorRampPalette(c("#4C3F54", "#D13525", "#F2C057", "#486824"))
 
 #############################
 ### Preprocessing
@@ -18,13 +16,10 @@ count_ros <- 1:nrow(ros)
 
 #Adding extra vars
 ros$ID <- paste0('ros_', count_ros)
-
 ros[, extr_events := ifelse(WL1_ex > 0 & Q1_ex > 0, T, F)] #extreme events
-
 ros[, month := month(Rain_Start)]
 
 #Shuffling
-
 set.seed(1999)
 (ros <- ros[sample(count_ros, replace = F), ])
 
@@ -44,7 +39,7 @@ ros_subset <- ros[, .(ID,
                       ROS.area.mean_II,          #Fraction of Runoff contributing area of ROS
                       Runoff_cont.area_mean,  #Fraction of Runoff contributing area
                       Snow.area_mean)]         #Fraction of catchment covered by snow   
-#NA removal
+
 ros_subset <- ros_subset[complete.cases(ros_subset), ] 
 
 #Homogenization
@@ -53,10 +48,9 @@ n_var <- length(vars_for_classification)
 ros_for_som <- as.matrix(apply(ros_subset[, -1], 2, scale)) # ID column should not be used in cluster analysis
 ros_for_som <- ros_for_som[, vars_for_classification]
 
-cor(ros_for_som) # To check for variables correlation
+cor(ros_for_som) # To check for variables' correlation (< 0.4)
 
 #Catchments
-
 ros_cat <- ros[, .(ID = paste0("ros_", Event.Nr), catchment = where, mountain = hora)]
 
 #############################
