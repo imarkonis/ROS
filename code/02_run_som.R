@@ -66,7 +66,7 @@ ros_som <- supersom(ros_for_som, somgrid(som_dim, som_dim, "hexagonal"),
 ros_subset$node <- as.factor(ros_som$unit.classif)
 ros <- merge(ros, ros_subset[, c('ID', 'node')], by = 'ID')
 ros_subset <- merge(ros_subset, ros[, c('ID', 'Q_baseGroup')], by = 'ID')
-save(ros_som, ros_subset, ros_cat, my_palette, n_var, n_nodes, ros, file = './results/som_4x4_4_vars.rdata')
+save(ros_som, ros_subset, ros_cat, n_nodes, ros, file = './results/som_4x4_4_vars.rdata')
 write.csv(ros, file = './results/ros_som_4.csv')
 
 
