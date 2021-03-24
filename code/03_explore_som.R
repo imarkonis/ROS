@@ -23,18 +23,19 @@ ros_subset <- group_node[ros_subset, on = 'node']
 group_types <- ros_subset[, .(Q_group_size = .N), .(P_group, Q_baseGroup)]
 most_events_type <- group_types[group_types[, .I[Q_group_size == max(Q_group_size)], by = P_group]$V1]
 most_events_type <- most_events_type[order(P_group)]
-
+most_events_type <- most_events_type[-4]
 write.csv(ros_subset[, -1], file = './results/ros_som_4_groups.csv')
-
+write.csv(group_medians, file = './results/ros_som_4_group_medians.csv')
+          
 #Boxplot
 to_plot_groups <- data.table(melt(ros_subset, id.vars = c('ID', 'node', 'P_group', 'Q_baseGroup'))) #tidy up
-vars_to_plot <- unique(to_plot_groups$variable)[c(1:5, 7, 10, 13, 14)]
+vars_to_plot <- unique(to_plot_groups$variable)[c(1:5, 10, 13, 14)]
 
 to_plot_groups <- to_plot_groups[variable %in% vars_to_plot]
 to_plot_groups$variable <- relevel(to_plot_groups$variable, "EventPrec")
 to_plot_groups$variable <- droplevels(to_plot_groups$variable)
 levels(to_plot_groups$variable) <- 
-  c("P event", "Snowmelt", "C", "SWE", "T mean", "Water budget", 
+  c("P event", "Snowmelt", "C", "SWE", "T mean", 
     "Q max", "RCA", "SCA")
 
 aa <- most_events_type[, .(P_group, Q_baseGroup)]
@@ -47,18 +48,20 @@ g1 <- ggplot(to_plot_groups,
              aes(x = P_group, y = value, fill = Q_baseGroup)) +  #ploting boxplots ordered by EventMelt medians
   geom_boxplot() +
   scale_x_discrete(labels = to_plot_groups) +
-  facet_wrap(~variable, scales = "free") + 
+  facet_wrap(~variable, scales = "free", ncol = 2) + 
   scale_fill_manual(values = my_palette(4)) +
   xlab("Group") +
   ylab("Variable values") +
   theme_minimal() + 
-  theme(panel.spacing = unit(0.8, "cm")) + 
-  guides(fill = guide_legend(title = "Main runoff \ntype"))
-
+  theme(legend.direction = "horizontal", legend.position = "bottom",
+        panel.spacing = unit(0.8, "cm"), 
+        strip.text.x = element_text(size = 12)) + 
+  guides(fill = guide_legend(title = "Main runoff type"))
+        
 ggsave('./results/plots/nodes_4_vars_boxplot.png', g1, 'png', 
-       width = 30, height = 15, units = 'cm')
-
-#Months with most events per node
+               width = 15, height = 17, units = 'cm')
+        
+        #Months with most events per node
 ros_months <- ros_subset[ros[, .(ID, 
                                  month = as.factor(month))], 
                          on = 'ID']
@@ -81,7 +84,6 @@ op <- par(mar = c(1, 1, 1, 1),
           mfrow = c(4, 4))
 
 
-
 for(group_id in 1:n_groups){
   group_for_radar <- rbind(group_var_range[2:1, ], 
                            group_medians[P_group == group_id, ])[, 2:(n_var + 1)]
@@ -89,18 +91,18 @@ for(group_id in 1:n_groups){
   radarchart(group_for_radar, 
              axistype = 4,
              title = paste0("Group ", group_id, " (N: ", n_ros_group[group_id, 2], 
-                            ", Q type: ",  most_events_type[group_id]$Q_group, ")"), 
+                            ", Q type: ",  most_events_type[group_id]$Q_baseGroup, ")"), 
              pcol = rgb(0.2, 0.5, 0.5, 0.9), 
              pfcol = rgb(0.2, 0.5, 0.5, 0.5), 
              plwd = 4, 
-             vlcex = 1,
+             vlcex = 1.5,
              cglcol = "grey", 
              cglty = 1, 
              axislabcol = "grey", 
              cglwd = 1.2)
 }
 dev.copy(png, './results/plots/nodes_4_vars_radar.png', 
-         width = 800, height = 800)
+         width = 700, height = 600)
 dev.off()
 
 #Months per group
