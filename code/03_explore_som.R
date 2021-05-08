@@ -5,6 +5,8 @@ library(kohonen)
 
 load('./results/som_4x4_4_vars.rdata') 
 my_palette <- colorRampPalette(c("#4C3F54", "#486824", "#F2C057", "#D13525"))
+palette_vuv <- palette_vuv <- colorRampPalette(c( "#0A6F88", "#15A9C6", "#58B52E", "#E00E1C", "#77007F", "#ED8810"))
+
 n_groups <- 16 # number of groups with similar properties | each node is a group
 
 ros_subset[, n_ros_group := .N, by = node] #number of ros events per hclust group
@@ -24,6 +26,8 @@ group_types <- ros_subset[, .(Q_group_size = .N), .(P_group, Q_baseGroup)]
 most_events_type <- group_types[group_types[, .I[Q_group_size == max(Q_group_size)], by = P_group]$V1]
 most_events_type <- most_events_type[order(P_group)]
 most_events_type <- most_events_type[-4]
+most_events_type$Q_baseGroup <- factor(most_events_type$Q_baseGroup, labels = 1:4)
+
 write.csv(ros_subset[, -1], file = './results/ros_som_4_groups.csv')
 write.csv(group_medians, file = './results/ros_som_4_group_medians.csv')
           
@@ -35,21 +39,22 @@ to_plot_groups <- to_plot_groups[variable %in% vars_to_plot]
 to_plot_groups$variable <- relevel(to_plot_groups$variable, "EventPrec")
 to_plot_groups$variable <- droplevels(to_plot_groups$variable)
 levels(to_plot_groups$variable) <- 
-  c("P event", "Snowmelt", "C", "SWE", "T mean", 
+  c("Event rainfall", "Snowmelt", "C", "SWE", "Temperature", 
     "Q max", "RCA", "SCA")
 
 aa <- most_events_type[, .(P_group, Q_baseGroup)]
 aa <- aa[-4]
 to_plot_groups[, Q_baseGroup := NULL]
 to_plot_groups <- aa[to_plot_groups, on = 'P_group']
-to_plot_groups$Q_baseGroup <- factor(to_plot_groups$Q_baseGroup)
+to_plot_groups$Q_baseGroup <- factor(to_plot_groups$Q_baseGroup, labels = 1:4)
+to_plot_groups <- to_plot_groups[complete.cases(to_plot_groups)]
 
 g1 <- ggplot(to_plot_groups, 
              aes(x = P_group, y = value, fill = Q_baseGroup)) +  #ploting boxplots ordered by EventMelt medians
   geom_boxplot() +
   scale_x_discrete(labels = to_plot_groups) +
   facet_wrap(~variable, scales = "free", ncol = 2) + 
-  scale_fill_manual(values = my_palette(4)) +
+  scale_fill_manual(values = palette_vuv(4)[1:4]) +
   xlab("Group") +
   ylab("Variable values") +
   theme_minimal() + 
@@ -59,7 +64,7 @@ g1 <- ggplot(to_plot_groups,
   guides(fill = guide_legend(title = "Main runoff type"))
         
 ggsave('./results/plots/nodes_4_vars_boxplot.png', g1, 'png', 
-               width = 15, height = 17, units = 'cm')
+               width = 15, height = 17, units = 'cm', res = 300)
         
         #Months with most events per node
 ros_months <- ros_subset[ros[, .(ID, 
@@ -90,10 +95,10 @@ for(group_id in 1:n_groups){
   
   radarchart(group_for_radar, 
              axistype = 4,
-             title = paste0("Group ", group_id, " (N: ", n_ros_group[group_id, 2], 
-                            ", Q type: ",  most_events_type[group_id]$Q_baseGroup, ")"), 
-             pcol = rgb(0.2, 0.5, 0.5, 0.9), 
-             pfcol = rgb(0.2, 0.5, 0.5, 0.5), 
+             title = paste0("Group ", group_id, " (N = ", n_ros_group[group_id, 2], 
+                            ", Runoff type = ",  most_events_type[group_id]$Q_baseGroup, ")"), 
+             pcol = palette_vuv(4)[as.numeric(most_events_type[group_id]$Q_baseGroup)], 
+             pfcol = rgb(0, 0, 0, 0.2), 
              plwd = 4, 
              vlcex = 1.5,
              cglcol = "grey", 
@@ -102,7 +107,7 @@ for(group_id in 1:n_groups){
              cglwd = 1.2)
 }
 dev.copy(png, './results/plots/nodes_4_vars_radar.png', 
-         width = 700, height = 600)
+         width = 24, height = 20, units = 'cm',  res = 300)
 dev.off()
 
 #Months per group
